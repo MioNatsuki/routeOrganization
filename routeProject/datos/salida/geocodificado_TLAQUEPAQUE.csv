@@ -1,0 +1,23 @@
+Id,Cuenta,Domicilio,Colonia,Cp,Zona,lat,lon,domicilio_limpio,estado_geocodificacion
+75,118068920,Isla Gomera 4492,El Sauz,45080,TLAQUEPAQUE,20.6248749,-103.3945285,"Avenida Isla Gomera, El Sauz, Guadalajara, Región Centro, Jalisco, 44987, México",exitoso
+251,310001823,Plan De Guadalupe 3812,Revolucion,45580,TLAQUEPAQUE,20.6190495,-103.3123877,"Calle Plan de Guadalupe, Tlaquepaque, San Pedro Tlaquepaque, Región Centro, Jalisco, 45580, México",exitoso
+272,311002552,Porvenir 175,Tlaquepaque Centro,45500,TLAQUEPAQUE,20.6366658,-103.3138438,"Calle Porvenir, Tlaquepaque, San Pedro Tlaquepaque, Región Centro, Jalisco, 45500, México",exitoso
+410,110092008,Juarez 51,San Sebastian,45602,TLAQUEPAQUE,20.5394421,-103.4340827,"Calle Juárez Poniente, San Sebastián El Grande, Tlajomulco de Zúñiga, Región Centro, Jalisco, 45845, México",exitoso
+496,110092062,Juarez 51,San Sebastian,45602,TLAQUEPAQUE,20.5394421,-103.4340827,"Calle Juárez Poniente, San Sebastián El Grande, Tlajomulco de Zúñiga, Región Centro, Jalisco, 45845, México",exitoso
+513,309001211,16 De Septiembre 137,San Martin De Las Flores De Abajo,45629,TLAQUEPAQUE,20.5774926,-103.3650665,"16 de Septiembre, Tlaquepaque, San Pedro Tlaquepaque, Región Centro, Jalisco, 45610, México",exitoso
+527,310003683,Privada Puerto Vallarta 2,Canal 58,45580,TLAQUEPAQUE,20.6142926,-103.2944912,"Privada Puerto Vallarta, Tlaquepaque, San Pedro Tlaquepaque, Región Centro, Jalisco, 45625, México",exitoso
+546,313001225,Pedro Moctezuma 28,San Pedrito,45629,TLAQUEPAQUE,20.6105546,-103.2941177,"Privada Pedro Moctezuma, San Martín de Las Flores, San Pedro Tlaquepaque, Región Centro, Jalisco, 45625, México",exitoso
+578,410002681,Privada Puerto Vallarta 2,Canal 58,45580,TLAQUEPAQUE,20.6142926,-103.2944912,"Privada Puerto Vallarta, Tlaquepaque, San Pedro Tlaquepaque, Región Centro, Jalisco, 45625, México",exitoso
+613,111044729,Carlos Gonzalez Pena 885,La Asuncion,45527,TLAQUEPAQUE,20.6371977,-103.2903639,"Calle Carlos González Peña, Tlaquepaque, San Pedro Tlaquepaque, Región Centro, Jalisco, 45525, México",exitoso
+622,111113800,Av. Bahia De Todos Los Santos 2968,Parq. De Santa Maria,45600,TLAQUEPAQUE,20.5941906,-103.416081,"Avenida Bahía de Todos los Santos, Tlaquepaque, San Pedro Tlaquepaque, Región Centro, Jalisco, 45609, México",exitoso
+626,112018151,Teapan 133,San Pedrito,45625,TLAQUEPAQUE,20.6111794,-103.2797484,"Calle Teapan, San Martín de Las Flores, San Pedro Tlaquepaque, Región Centro, Jalisco, 45638, México",exitoso
+633,112087187,Lima 685,Las Huertas,45589,TLAQUEPAQUE,20.6135688,-103.3060153,"Calle Lima, Tlaquepaque, San Pedro Tlaquepaque, Región Centro, Jalisco, 45580, México",exitoso
+686,123084666,Vidrio Soplado 198,Parque Tlaquepaque,45525,TLAQUEPAQUE,20.6399856,-103.2862212,"Calle Vidrio Soplado, Tlaquepaque, San Pedro Tlaquepaque, Región Centro, Jalisco, 45505, México",exitoso
+709,124051334,Vista Del Rio 505,Fracc Las Terrazas,45599,TLAQUEPAQUE,20.5938204,-103.3587021,"Vista del Río, Tlaquepaque, San Pedro Tlaquepaque, Región Centro, Jalisco, 45599, México",exitoso
+711,124059468,San Rafael Arcangel 4067,Lomas De San Miguel,45589,TLAQUEPAQUE,20.6221081,-103.3069387,"Calle San Rafaél Arcángel, Tlaquepaque, San Pedro Tlaquepaque, Región Centro, Jalisco, 45589, México",exitoso
+725,304001441,Azcapotzalco 768,San Pedrito,45625,TLAQUEPAQUE,20.6082707,-103.2827251,"Calle Azcapotzalco, San Martín de Las Flores, San Pedro Tlaquepaque, Región Centro, Jalisco, 45625, México",exitoso
+732,306000850,Zaragoza 92,San Pedro,44983,TLAQUEPAQUE,20.6045396,-103.3231704,"Calle María, Tlaquepaque, San Pedro Tlaquepaque, Región Centro, Jalisco, 45590, México",exitoso
+762,310003709,Rio Lerma 1253,Pinares Del Vergel,45590,TLAQUEPAQUE,20.6261186,-103.4000795,"Calle Río Lerma, Tlaquepaque, San Pedro Tlaquepaque, Región Centro, Jalisco, 44987, México",exitoso
+776,313000115,Santa Monica 269,El Refugio,45525,TLAQUEPAQUE,20.5571871,-103.440636,"Santa Mónica, Santa Anita, San Pedro Tlaquepaque, Región Centro, Jalisco, 45645, México",exitoso
+786,315001102,Jorge 28,Tapatio,45588,TLAQUEPAQUE,20.6053871,-103.3220956,"28, Calle Jorge, Tlaquepaque, San Pedro Tlaquepaque, Región Centro, Jalisco, 45590, México",exitoso
+809,418002042,Loma Bonita 115,San Pedrito,45625,TLAQUEPAQUE,20.6145715,-103.289453,"Calle Loma Bonita, San Martín de Las Flores, San Pedro Tlaquepaque, Región Centro, Jalisco, 45625, México",exitoso

@@ -1,3 +1,4 @@
+#routeProject/mapa_viewer.py
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 from PIL import Image, ImageTk
@@ -22,7 +23,7 @@ class MapaViewer:
         self.main_frame.rowconfigure(1, weight=1)
         
         # Título
-        ttk.Label(self.main_frame, text="🗺️ Visualizador de Rutas", 
+        ttk.Label(self.main_frame, text="Visualizador de Rutas", 
                  font=("Arial", 16, "bold")).grid(row=0, column=0, pady=10)
         
         # Canvas para el mapa

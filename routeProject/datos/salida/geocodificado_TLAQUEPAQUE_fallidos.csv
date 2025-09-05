@@ -1,0 +1,14 @@
+Id,Cuenta,Domicilio,Colonia,Cp,Zona,lat,lon,domicilio_limpio,estado_geocodificacion,razon_fallo
+275,311003252,Fte De La Concordia 204,Villa Fontana,45615,TLAQUEPAQUE,,,,fallo_geocodificacion,No se pudo geocodificar
+292,313000104,Huerto Caoba 100,Las Huertas,45589,TLAQUEPAQUE,,,,fallo_geocodificacion,No se pudo geocodificar
+453,121045010,Av. Jose Salome Pina 622,Miravalle,44990,TLAQUEPAQUE,,,,fallo_geocodificacion,No se pudo geocodificar
+454,121045011,Av. Jose Salome Pina 622,Miravalle,44990,TLAQUEPAQUE,,,,fallo_geocodificacion,No se pudo geocodificar
+455,121045012,Av. Jose Salome Pina 622,Miravalle,44990,TLAQUEPAQUE,,,,fallo_geocodificacion,No se pudo geocodificar
+456,121045013,Av. Jose Salome Pina 622,Miravalle,44990,TLAQUEPAQUE,,,,fallo_geocodificacion,No se pudo geocodificar
+457,121045014,Av. Jose Salome Pina 622,Miravalle,44990,TLAQUEPAQUE,,,,fallo_geocodificacion,No se pudo geocodificar
+458,121045015,Av. Jose Salome Pina 622,Miravalle,44990,TLAQUEPAQUE,,,,fallo_geocodificacion,No se pudo geocodificar
+579,411004122,Fte De La Concordia 204,Villa Fontana,45615,TLAQUEPAQUE,,,,fallo_geocodificacion,No se pudo geocodificar
+714,110103089,Othon Blanco Cazares. 4950.,Nueva Santa Maria.,45530,TLAQUEPAQUE,,,,fallo_geocodificacion,No se pudo geocodificar
+724,303001736,Privada Romero No. 28O-12,Villas De Loma Grande,45580,TLAQUEPAQUE,,,,fallo_geocodificacion,No se pudo geocodificar
+737,307001529,Bosquede La Primavera 121,San Martin De Las Flores De Abajo,45629,TLAQUEPAQUE,,,,fallo_geocodificacion,No se pudo geocodificar
+767,312000356,Fuente Guaymas 321,Villa Fontana,45615,TLAQUEPAQUE,,,,fallo_geocodificacion,No se pudo geocodificar
