@@ -4,6 +4,7 @@ import os
 import math
 
 def crear_directorios():
+    """Crea los directorios necesarios para el proyecto"""
     directorios = ['datos/entrada', 'datos/salida', 'mapas']
     
     for directorio in directorios:
@@ -12,6 +13,7 @@ def crear_directorios():
     print("Directorios creados/existen")
 
 def filtrar_por_zona(df: pd.DataFrame, zona: str) -> pd.DataFrame:
+    """Filtra el DataFrame por zona (case insensitive y con trim)"""
     if df is None or df.empty:
         return pd.DataFrame()
     
@@ -26,7 +28,7 @@ def filtrar_por_zona(df: pd.DataFrame, zona: str) -> pd.DataFrame:
     
     columna_zona = columnas_zona[0]
     
-    # Hacer la búsqueda case sensitive y con trim
+    # Hacer la búsqueda case insensitive y con trim
     try:
         df_filtrado = df[df[columna_zona].astype(str).str.strip().str.lower() == zona.strip().lower()].copy()
         
@@ -42,7 +44,39 @@ def filtrar_por_zona(df: pd.DataFrame, zona: str) -> pd.DataFrame:
         print(f"Error filtrando por zona: {e}")
         return pd.DataFrame()
 
+# ✅ NUEVA FUNCIÓN NECESARIA
+def filtrar_por_colonia(df: pd.DataFrame, colonia: str) -> pd.DataFrame:
+    """Filtra el DataFrame por colonia (case insensitive y con trim)"""
+    if df is None or df.empty:
+        return pd.DataFrame()
+    
+    # Buscar la columna Colonia
+    columnas_colonia = [col for col in df.columns if col.lower() == 'colonia']
+    
+    if not columnas_colonia:
+        print("No se encontró columna 'Colonia' en el CSV")
+        return df  # Retornar el DataFrame original si no hay columna Colonia
+    
+    columna_colonia = columnas_colonia[0]
+    
+    # Hacer la búsqueda case insensitive y con trim
+    try:
+        df_filtrado = df[df[columna_colonia].astype(str).str.strip().str.lower() == colonia.strip().lower()].copy()
+        
+        if df_filtrado.empty:
+            print(f"No se encontraron registros para la colonia: '{colonia}'")
+            if columna_colonia in df.columns:
+                colonias_disponibles = df[columna_colonia].astype(str).str.strip().unique()
+                print(f"Colonias disponibles: {colonias_disponibles}")
+        
+        return df_filtrado
+        
+    except Exception as e:
+        print(f"Error filtrando por colonia: {e}")
+        return df  # Retornar el DataFrame original en caso de error
+
 def dividir_por_notificadores(df: pd.DataFrame, cuentas_por_notificador: int) -> List[pd.DataFrame]:
+    """Divide el DataFrame en chunks para cada notificador"""
     if df is None or df.empty:
         return []
     
@@ -56,6 +90,7 @@ def dividir_por_notificadores(df: pd.DataFrame, cuentas_por_notificador: int) ->
     return chunks
 
 def mostrar_ruta(ruta: List[int], df: pd.DataFrame):
+    """Muestra una ruta específica con formato legible"""
     if not ruta or df is None or df.empty:
         print("No hay datos para mostrar")
         return
@@ -97,6 +132,7 @@ def mostrar_ruta(ruta: List[int], df: pd.DataFrame):
             print(f"  {i+1}. Error mostrando punto: {e}")
 
 def verificar_estructura_csv(df: pd.DataFrame):
+    """Verifica que el CSV tenga la estructura correcta"""
     if df is None or df.empty:
         return False, "El DataFrame está vacío"
     

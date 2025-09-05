@@ -2,7 +2,7 @@ import pandas as pd
 from geocodificador import Geocodificador
 from optimizador_rutas import OptimizadorRutas
 from generador_mapas import GeneradorMapas
-from utils import crear_directorios, filtrar_por_zona, dividir_por_notificadores, mostrar_ruta
+from utils import crear_directorios, filtrar_por_zona, dividir_por_notificadores, mostrar_ruta, filtrar_por_colonia
 import argparse
 from typing import List
 import os
@@ -21,8 +21,14 @@ def main():
     parser.add_argument('--zona', required=True, help='Zona a optimizar')
     parser.add_argument('--cuentas-por-notificador', type=int, default=0, 
                        help='Número de cuentas por notificador (0 para ruta única)')
-    parser.add_argument('--radio-maximo', type=int, default=40,
-                       help='Radio máximo en km para considerar coordenadas válidas (default: 40)')
+    parser.add_argument('--radio-maximo', type=int, default=25,
+                       help='Radio máximo en km para considerar coordenadas válidas (default: 25)')
+    parser.add_argument('--colonia', type=str, default='',
+                       help='Colonia específica dentro de la zona (opcional)')
+    parser.add_argument('--punto-inicio', type=str, default='',
+                       help='Dirección para punto de inicio personalizado (opcional)')
+    parser.add_argument('--usar-coordenadas', action='store_true',
+                       help='Usar coordenadas existentes en el CSV (si disponibles)')
     
     args = parser.parse_args()
     
@@ -32,37 +38,84 @@ def main():
         print(f"Zona: {args.zona}")
         print(f"Radio máximo: {args.radio_maximo} km")
         
+        if args.colonia:
+            print(f"Colonia: {args.colonia}")
+        
+        if args.punto_inicio:
+            print(f"Punto de inicio: {args.punto_inicio}")
+        
         if args.cuentas_por_notificador > 0:
             print(f"Cuentas por notificador: {args.cuentas_por_notificador}")
         else:
-            print(f"Modo: Ruta única para toda la zona")
+            print(f"Modo: Ruta única")
+        
+        if args.usar_coordenadas:
+            print("Usando coordenadas existentes del CSV")
         
         # Filtro por zona
         print(f"\nFiltrando datos para la zona: {args.zona}...")
-        df_original = pd.read_csv(args.archivo)
-        df_zona_filtrado = filtrar_por_zona(df_original, args.zona)
+        df_original = pd.read_csv(args.archivo, encoding='utf-8')
+        df_filtrado = filtrar_por_zona(df_original, args.zona)
         
-        if df_zona_filtrado.empty:
+        if df_filtrado.empty:
             print(f"No se encontraron datos para la zona: {args.zona}")
             print("Verifica que el nombre de la zona coincida exactamente")
             return
         
-        print(f"{len(df_zona_filtrado)} domicilios encontrados en {args.zona}")
+        # Filtro por colonia si se especificó
+        if args.colonia:
+            print(f"Filtrando por colonia: {args.colonia}...")
+            df_filtrado = filtrar_por_colonia(df_filtrado, args.colonia)
+            
+            if df_filtrado.empty:
+                print(f"No se encontraron datos para la colonia: {args.colonia}")
+                return
+        
+        print(f"{len(df_filtrado)} domicilios encontrados")
         
         # Guardar CSV filtrado temporalmente
-        archivo_filtrado = f"datos/salida/filtrado_{args.zona}.csv"
-        df_zona_filtrado.to_csv(archivo_filtrado, index=False, encoding='utf-8')
+        archivo_filtrado = f"datos/salida/filtrado_{args.zona}"
+        if args.colonia:
+            archivo_filtrado += f"_{args.colonia.replace(' ', '_')}"
+        archivo_filtrado += ".csv"
+        
+        df_filtrado.to_csv(archivo_filtrado, index=False, encoding='utf-8')
         print(f"Datos filtrados guardados en: {archivo_filtrado}")
         
-        # Geocodificador de zona filtrada
-        archivo_geocodificado = f"datos/salida/geocodificado_{args.zona}.csv"
-        df = geocodificador.procesar_csv(archivo_filtrado, archivo_geocodificado)
+        # Geocodificación (solo si no se usan coordenadas existentes)
+        if args.usar_coordenadas and geocodificador._tiene_coordenadas(df_filtrado):
+            print("Procesando archivo con coordenadas mixtas...")
+            archivo_procesado = archivo_filtrado.replace('filtrado', 'procesado')
+            df = geocodificador.procesar_csv_mixto(archivo_filtrado, archivo_procesado)
+        else:
+            print("Geocodificando direcciones...")
+            archivo_geocodificado = archivo_filtrado.replace('filtrado', 'geocodificado')
+            df = geocodificador.procesar_csv(archivo_filtrado, archivo_geocodificado)
         
         # Verificar que hay datos para optimizar
         if df.empty:
-            print("No hay direcciones válidas para optimizar después del filtrado por distancia")
+            print("No hay direcciones válidas para optimizar después del filtrado")
             print("Revisa el archivo de fallos en datos/salida/")
             return
+        
+        # Geocodificar punto de inicio si se especificó
+        punto_inicio_index = None
+        if args.punto_inicio:
+            print(f"Geocodificando punto de inicio: {args.punto_inicio}")
+            lat, lon, nombre = geocodificador.geocodificar_punto_inicial(args.punto_inicio)
+            if lat and lon:
+                print(f"Punto inicial geocodificado: {nombre}")
+                # Encontrar el punto más cercano en el dataset
+                from utils import calcular_distancia_haversine
+                min_dist = float('inf')
+                for idx, row in df.iterrows():
+                    dist = calcular_distancia_haversine(lat, lon, row['lat'], row['lon'])
+                    if dist < min_dist:
+                        min_dist = dist
+                        punto_inicio_index = idx
+                print(f"Punto de inicio asignado: {df.iloc[punto_inicio_index]['Domicilio']}")
+            else:
+                print("No se pudo geocodificar el punto de inicio, usando punto por defecto")
         
         # Optimizar rutas
         if args.cuentas_por_notificador > 0:
@@ -83,7 +136,7 @@ def main():
                 
                 # Optimizar ruta para este chunk
                 try:
-                    rutas_chunk = optimizador.optimizar_ruta(chunk, 1)  # 1 vehículo por chunk
+                    rutas_chunk = optimizador.optimizar_ruta(chunk, 1)
                     
                     # Verificar que se optimizó correctamente
                     if not rutas_chunk or len(rutas_chunk) == 0:
@@ -106,6 +159,7 @@ def main():
                             'Domicilio_Original': fila.get('Domicilio', ''),
                             'Domicilio_Limpio': fila.get('domicilio_limpio', ''),
                             'Zona': fila.get('Zona', ''),
+                            'Colonia': fila.get('Colonia', ''),
                             'lat': fila.get('lat', ''),
                             'lon': fila.get('lon', '')
                         })
@@ -145,6 +199,14 @@ def main():
             print(f"\nOptimizando ruta única para {len(df)} cuentas...")
             
             try:
+                # Forzar punto de inicio si se especificó
+                if punto_inicio_index is not None:
+                    print(f"Forzando punto de inicio en índice: {punto_inicio_index}")
+                    # Reordenar el DataFrame para que el punto de inicio esté primero
+                    indices_reordenados = [punto_inicio_index] + [i for i in range(len(df)) if i != punto_inicio_index]
+                    df_reordenado = df.iloc[indices_reordenados].reset_index(drop=True)
+                    df = df_reordenado
+                
                 rutas_optimizadas = optimizador.optimizar_ruta(df, 1)
                 
                 # Verificar que se optimizó correctamente
@@ -168,18 +230,23 @@ def main():
                         'Domicilio_Original': fila.get('Domicilio', ''),
                         'Domicilio_Limpio': fila.get('domicilio_limpio', ''),
                         'Zona': fila.get('Zona', ''),
+                        'Colonia': fila.get('Colonia', ''),
                         'lat': fila.get('lat', ''),
                         'lon': fila.get('lon', '')
                     })
                 
                 df_ruta = pd.DataFrame(datos_ruta)
                 archivo_rutas = f"datos/salida/ruta_unica_{args.zona}.csv"
+                if args.colonia:
+                    archivo_rutas = archivo_rutas.replace('.csv', f"_{args.colonia.replace(' ', '_')}.csv")
                 df_ruta.to_csv(archivo_rutas, index=False, encoding='utf-8')
                 print(f"CSV de ruta guardado: {archivo_rutas}")
                 
                 # Generar mapa
                 coordenadas = list(zip(df['lat'], df['lon']))
                 archivo_mapa = f"mapas/ruta_unica_{args.zona}.png"
+                if args.colonia:
+                    archivo_mapa = archivo_mapa.replace('.png', f"_{args.colonia.replace(' ', '_')}.png")
                 if generador_mapas.generar_mapa_estatico(coordenadas, ruta_optimizada, archivo_mapa):
                     print(f"Mapa generado: {archivo_mapa}")
                 else:
@@ -201,7 +268,9 @@ def main():
             os.remove(archivo_filtrado)
             print(f"Archivo temporal eliminado: {archivo_filtrado}")
         
-        print("\nProceso completado exitosamente!")
+        print("\n¡Proceso completado exitosamente!")
+        print("Resultados guardados en: datos/salida/")
+        print("Mapas generados en: mapas/")
         
     except Exception as e:
         print(f"Error en el proceso: {e}")

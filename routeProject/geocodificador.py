@@ -1,4 +1,3 @@
-#routeproject/geocodificador.py
 import pandas as pd
 import requests
 import time
@@ -41,7 +40,7 @@ class Geocodificador:
         return R * c
     
     def _esta_dentro_radio_permitido(self, lat: float, lon: float, zona: str) -> Tuple[bool, float]:
-        #Verifica si las coordenadas están dentro del radio de 25km del centro de la zona
+        """Verifica si las coordenadas están dentro del radio de 25km del centro de la zona"""
         if not zona or pd.isna(zona):
             return True, 0.0
         
@@ -62,6 +61,38 @@ class Geocodificador:
         distancia = self._calcular_distancia_km(lat, lon, centro_lat, centro_lon)
         
         return distancia <= 25, distancia
+    
+    def _tiene_coordenadas(self, df: pd.DataFrame) -> bool:
+        """Detecta si el DataFrame ya tiene columnas de coordenadas"""
+        columnas = df.columns.str.lower().tolist()
+        return any(col in columnas for col in ['lat', 'lon', 'latitud', 'longitud'])
+    
+    def _normalizar_coordenadas(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Normaliza nombres de columnas de coordenadas y valida datos"""
+        df = df.copy()
+        
+        # Renombrar columnas a lat/lon
+        if 'Latitud' in df.columns and 'Longitud' in df.columns:
+            df = df.rename(columns={'Latitud': 'lat', 'Longitud': 'lon'})
+        elif 'latitude' in df.columns and 'longitude' in df.columns:
+            df = df.rename(columns={'latitude': 'lat', 'longitude': 'lon'})
+        
+        # Validar que las coordenadas sean numéricas y estén en rangos válidos
+        if 'lat' in df.columns and 'lon' in df.columns:
+            df['lat'] = pd.to_numeric(df['lat'], errors='coerce')
+            df['lon'] = pd.to_numeric(df['lon'], errors='coerce')
+            
+            # Filtrar coordenadas inválidas
+            mask_validas = (
+                df['lat'].notna() & 
+                df['lon'].notna() &
+                df['lat'].between(-90, 90) & 
+                df['lon'].between(-180, 180)
+            )
+            
+            df = df[mask_validas].copy()
+        
+        return df
     
     def limpiar_direccion(self, direccion: str) -> str:
         if pd.isna(direccion):
@@ -125,11 +156,11 @@ class Geocodificador:
                 query_partes.append(zona_limpia)
             else:
                 # Si es Foráneos o no hay zona, usar estado directamente
-                query_partes.append("Jalisco")  # Se puede cambiar por cualquier Estado
+                query_partes.append("Jalisco")
             
             # 4. Estado (si no se usó la zona como ciudad)
             if not zona or str(zona).strip().lower() == "foráneos":
-                query_partes.append("Jalisco")  # Se puede cambiar por cualquier Estado
+                query_partes.append("Jalisco")
             
             # 5. CP (si existe) - al final
             if cp and pd.notna(cp) and str(cp).strip():
@@ -141,7 +172,7 @@ class Geocodificador:
             
             query_completa = ', '.join([parte for parte in query_partes if parte])
             
-            print(f"Buscando: {query_completa}")  # Para debugging
+            print(f"Buscando: {query_completa}")
             
             params = {
                 'q': query_completa,
@@ -164,6 +195,7 @@ class Geocodificador:
                 
                 print(f"Encontrado: {display_name} (tipo: {tipo})")
                 
+                # Verificar distancia (25km máximo)
                 dentro_radio, distancia = self._esta_dentro_radio_permitido(lat, lon, zona)
                 if not dentro_radio:
                     print(f"Coordenada fuera de radio: {distancia:.1f} km de centro de {zona}")
@@ -196,6 +228,13 @@ class Geocodificador:
                     lon = float(data_simple[0]['lon'])
                     display_name = data_simple[0]['display_name']
                     print(f"Encontrado con versión simple: {display_name}")
+                    
+                    # Verificar distancia también para versión simple
+                    dentro_radio, distancia = self._esta_dentro_radio_permitido(lat, lon, zona)
+                    if not dentro_radio:
+                        print(f"Coordenada fuera de radio: {distancia:.1f} km de centro de {zona}")
+                        return None, None, f"NO LOCALIZABLE - Fuera de radio ({distancia:.1f} km)"
+                    
                     return lat, lon, display_name
                 
                 return None, None, None
@@ -204,12 +243,63 @@ class Geocodificador:
             print(f"Error geocodificando '{direccion}': {e}")
             return None, None, None
     
+    def geocodificar_punto_inicial(self, direccion: str) -> Tuple[Optional[float], Optional[float], Optional[str]]:
+        """Geocodifica una dirección para punto inicial (sin filtro de zona)"""
+        try:
+            # Agregar estado y país por defecto
+            direccion_completa = f"{direccion}, Jalisco, México"
+            
+            params = {
+                'q': direccion_completa,
+                'format': 'json',
+                'limit': 1,
+                'countrycodes': 'mx'
+            }
+            
+            response = self.session.get(NOMINATIM_URL, params=params, timeout=15)
+            response.raise_for_status()
+            
+            data = response.json()
+            
+            if data:
+                lat = float(data[0]['lat'])
+                lon = float(data[0]['lon'])
+                display_name = data[0]['display_name']
+                
+                print(f"Punto inicial geocodificado: {display_name}")
+                return lat, lon, display_name
+            else:
+                print(f"No se pudo geocodificar punto inicial: {direccion}")
+                return None, None, None
+                
+        except Exception as e:
+            print(f"Error geocodificando punto inicial '{direccion}': {e}")
+            return None, None, None
+    
     def procesar_csv(self, archivo_entrada: str, archivo_salida: str) -> pd.DataFrame:
         print("Leyendo archivo CSV...")
         df = pd.read_csv(archivo_entrada)
         
         # Estandarizar nombres de columnas
         df.columns = df.columns.str.strip().str.title()
+        
+        if self._tiene_coordenadas(df):
+            print("CSV ya tiene coordenadas - Validando y normalizando...")
+            df = self._normalizar_coordenadas(df)
+            
+            # Agregar columnas dummy para consistencia
+            if 'domicilio_limpio' not in df.columns:
+                df['domicilio_limpio'] = df.get('Domicilio', '')
+            
+            # Clasificar resultados
+            df['estado_geocodificacion'] = 'exitoso'
+            
+            # Guardar resultados
+            df.to_csv(archivo_salida, index=False, encoding='utf-8')
+            print(f"CSV con coordenadas validado y guardado: {archivo_salida}")
+            return df
+        
+        # ↓↓↓ SI NO TIENE COORDENADAS, PROCEDER CON GEOCODIFICACIÓN NORMAL ↓↓↓
         
         # Verificar columnas disponibles
         columnas = df.columns.str.lower().tolist()
@@ -269,7 +359,7 @@ class Geocodificador:
             # Agregar columna de razón del fallo
             df_fallidos['razon_fallo'] = 'desconocida'
             df_fallidos.loc[df_fallidos['estado_geocodificacion'] == 'fallo_geocodificacion', 'razon_fallo'] = 'No se pudo geocodificar'
-            df_fallidos.loc[df_fallidos['estado_geocodificacion'] == 'fuera_radio', 'razon_fallo'] = 'Fuera del radio de 40km'
+            df_fallidos.loc[df_fallidos['estado_geocodificacion'] == 'fuera_radio', 'razon_fallo'] = 'Fuera del radio de 25km'  # 25km
             
             df_fallidos.to_csv(archivo_fallidos, index=False, encoding='utf-8')
             print(f"{len(df_fallidos)} direcciones no localizables guardadas en: {archivo_fallidos}")
@@ -300,54 +390,117 @@ class Geocodificador:
         
         return df_exitosos
 
-#Cuando se hace por cuentas x notificador
-def geocodificar_lote(self, df: pd.DataFrame) -> List[Tuple[Optional[float], Optional[float], Optional[str]]]:
-    resultados = []
-    
-    # Verificar columnas disponibles
-    columnas = df.columns.str.lower().tolist()
-    tiene_colonia = any(col in columnas for col in ['colonia', 'colonias'])
-    tiene_cp = any(col in columnas for col in ['cp', 'codigo postal', 'código postal', 'zip', 'zip code'])
-    tiene_zona = 'zona' in columnas
-    
-    print(f"Columnas detectadas: {', '.join(df.columns)}")
-    if tiene_colonia:
-        print("Colonia detectada")
-    if tiene_cp:
-        print("Código Postal detectado")
-    if tiene_zona:
-        print("Zona detectada")
-    
-    for i, fila in df.iterrows():
-        if i > 0:
-            time.sleep(GEOCODING_DELAY)
+    def procesar_csv_mixto(self, archivo_entrada: str, archivo_salida: str) -> pd.DataFrame:
+        print("Procesando archivo de coordenadas mixtas...")
+        df = pd.read_csv(archivo_entrada)
+        df.columns = df.columns.str.strip().str.title()
         
-        # Extraer información adicional
-        colonia = fila['Colonia'] if tiene_colonia and 'Colonia' in df.columns else None
-        if not colonia and tiene_colonia:
-            for col in df.columns:
-                if 'colonia' in col.lower():
-                    colonia = fila[col]
-                    break
+        # Identificar registros CON coordenadas
+        mask_tiene_coordenadas = (
+            df['Latitud'].notna() & df['Longitud'].notna() if 'Latitud' in df.columns and 'Longitud' in df.columns else
+            df['Latitude'].notna() & df['Longitude'].notna() if 'Latitude' in df.columns and 'Longitude' in df.columns else
+            df['lat'].notna() & df['lon'].notna() if 'lat' in df.columns and 'lon' in df.columns else
+            pd.Series([False] * len(df))
+        )
         
-        cp = fila['CP'] if tiene_cp and 'CP' in df.columns else None
-        if not cp and tiene_cp:
-            for col in df.columns:
-                if any(nombre in col.lower() for nombre in ['cp', 'codigo postal', 'zip']):
-                    cp = fila[col]
-                    break
+        df_con_coordenadas = df[mask_tiene_coordenadas].copy()
+        df_sin_coordenadas = df[~mask_tiene_coordenadas].copy()
         
-        zona = fila['Zona'] if tiene_zona and 'Zona' in df.columns else None
-        if not zona and tiene_zona:
-            for col in df.columns:
-                if 'zona' in col.lower():
-                    zona = fila[col]
-                    break
+        print(f"{len(df_con_coordenadas)} registros con coordenadas existentes")
+        print(f"{len(df_sin_coordenadas)} registros requieren geocodificación")
         
-        resultado = self.geocodificar_direccion(fila['Domicilio'], colonia, cp, zona)
-        resultados.append(resultado)
+        # 1. Procesar coordenadas existentes
+        if not df_con_coordenadas.empty:
+            df_con_coordenadas = self._normalizar_coordenadas(df_con_coordenadas)
+            df_con_coordenadas['estado_geocodificacion'] = 'coordenada_existente'
+            df_con_coordenadas['domicilio_limpio'] = df_con_coordenadas.get('Domicilio', '')
         
-        if i % 5 == 0 and i > 0:
-            print(f"Geocodificadas {i}/{len(df)} direcciones...")
-    
-    return resultados
+        # 2. Geocodificar los que faltan
+        if not df_sin_coordenadas.empty:
+            print("Geocodificando registros sin coordenadas...")
+            resultados_geocodificacion = self.geocodificar_lote(df_sin_coordenadas)
+            df_sin_coordenadas[['lat', 'lon', 'domicilio_limpio']] = resultados_geocodificacion
+            df_sin_coordenadas['estado_geocodificacion'] = 'geocodificado'
+        else:
+            df_sin_coordenadas = pd.DataFrame()
+        
+        # 3. Unificar resultados
+        df_final = pd.concat([df_con_coordenadas, df_sin_coordenadas], ignore_index=True)
+        
+        # 4. Clasificar y guardar resultados
+        self._guardar_resultados_mixtos(df_final, archivo_salida)
+        
+        return df_final
+
+    def _guardar_resultados_mixtos(self, df: pd.DataFrame, archivo_salida: str):
+        """Guarda resultados del procesamiento mixto"""
+        # Identificar fallos de geocodificación
+        mask_fallos = (
+            (df['estado_geocodificacion'] == 'geocodificado') & 
+            (df['lat'].isna() | df['lon'].isna())
+        )
+        
+        df_fallidos = df[mask_fallos].copy()
+        df_exitosos = df[~mask_fallos].copy()
+        
+        # Guardar resultados
+        df_exitosos.to_csv(archivo_salida, index=False, encoding='utf-8')
+        
+        if not df_fallidos.empty:
+            archivo_fallidos = archivo_salida.replace('.csv', '_fallidos.csv')
+            df_fallidos.to_csv(archivo_fallidos, index=False, encoding='utf-8')
+            print(f"{len(df_fallidos)} registros no se pudieron geocodificar")
+        
+        print(f"Resultados guardados: {archivo_salida}")
+
+
+    def geocodificar_lote(self, df: pd.DataFrame) -> List[Tuple[Optional[float], Optional[float], Optional[str]]]:
+        resultados = []
+        
+        # Verificar columnas disponibles
+        columnas = df.columns.str.lower().tolist()
+        tiene_colonia = any(col in columnas for col in ['colonia', 'colonias'])
+        tiene_cp = any(col in columnas for col in ['cp', 'codigo postal', 'código postal', 'zip', 'zip code'])
+        tiene_zona = 'zona' in columnas
+        
+        print(f"Columnas detectadas: {', '.join(df.columns)}")
+        if tiene_colonia:
+            print("Colonia detectada")
+        if tiene_cp:
+            print("Código Postal detectado")
+        if tiene_zona:
+            print("Zona detectada")
+        
+        for i, fila in df.iterrows():
+            if i > 0:
+                time.sleep(GEOCODING_DELAY)
+        
+            # Extraer información adicional
+            colonia = fila['Colonia'] if tiene_colonia and 'Colonia' in df.columns else None
+            if not colonia and tiene_colonia:
+                for col in df.columns:
+                    if 'colonia' in col.lower():
+                        colonia = fila[col]
+                        break
+            
+            cp = fila['CP'] if tiene_cp and 'CP' in df.columns else None
+            if not cp and tiene_cp:
+                for col in df.columns:
+                    if any(nombre in col.lower() for nombre in ['cp', 'codigo postal', 'zip']):
+                        cp = fila[col]
+                        break
+            
+            zona = fila['Zona'] if tiene_zona and 'Zona' in df.columns else None
+            if not zona and tiene_zona:
+                for col in df.columns:
+                    if 'zona' in col.lower():
+                        zona = fila[col]
+                        break
+            
+            resultado = self.geocodificar_direccion(fila['Domicilio'], colonia, cp, zona)
+            resultados.append(resultado)
+            
+            if i % 5 == 0 and i > 0:
+                print(f"Geocodificadas {i}/{len(df)} direcciones...")
+        
+        return resultados
